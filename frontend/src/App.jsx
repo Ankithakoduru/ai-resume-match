@@ -4,10 +4,10 @@ import "./App.css";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 
 const COMMON_SKILLS = [
-  "Power BI","SQL","Python","Excel","DAX","Azure","Tableau","R","dbt",
-  "Snowflake","Looker","Spark","Airflow","Pandas","NumPy","Java","Scala",
-  "AWS","GCP","Qlik","SAP","Scikit-learn","TensorFlow","Jupyter",
-  "Matplotlib","Alteryx","SAS","PostgreSQL","MySQL","MongoDB",
+  "Power BI", "SQL", "Python", "Excel", "DAX", "Azure", "Tableau", "R", "dbt",
+  "Snowflake", "Looker", "Spark", "Airflow", "Pandas", "NumPy", "Java", "Scala",
+  "AWS", "GCP", "Qlik", "SAP", "Scikit-learn", "TensorFlow", "Jupyter",
+  "Matplotlib", "Alteryx", "SAS", "PostgreSQL", "MySQL", "MongoDB",
 ];
 
 const DEFAULT_JD = `We are hiring a Data Analyst to join our growing analytics team.
@@ -41,7 +41,9 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef();
+  const mainAppRef = useRef();
 
   const lexicalWeight = parseFloat(((100 - sliderValue) / 100).toFixed(2));
   const semanticWeight = parseFloat((sliderValue / 100).toFixed(2));
@@ -59,9 +61,9 @@ export default function App() {
 
   const modeLabel = sliderValue <= 20 ? "Exact match only"
     : sliderValue <= 40 ? "Mostly keyword-based"
-    : sliderValue <= 60 ? "Balanced matching"
-    : sliderValue <= 80 ? "Meaning-aware"
-    : "Broad semantic match";
+      : sliderValue <= 60 ? "Balanced matching"
+        : sliderValue <= 80 ? "Meaning-aware"
+          : "Broad semantic match";
 
   function extractSkillsFromJD() {
     const text = jdText.toLowerCase();
@@ -81,31 +83,25 @@ export default function App() {
     setJdSkills(prev => prev.filter(s => s !== skill));
   }
 
-  async function handleFileUpload(e) {
-    const files = Array.from(e.target.files);
+  function scrollToApp() {
+    mainAppRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function processFiles(files) {
     const allowed = 10 - uploadedFiles.length;
     const toUpload = files.slice(0, allowed);
     if (!toUpload.length) return;
-
     setLoading(true);
     setStatus("Uploading and parsing resumes...");
-
     try {
       const formData = new FormData();
       toUpload.forEach(f => formData.append("files", f));
-
-      const parseRes = await fetch(`${BACKEND_URL}/api/parse-resumes`, {
-        method: "POST",
-        body: formData,
-      });
-
+      const parseRes = await fetch(`${BACKEND_URL}/api/parse-resumes`, { method: "POST", body: formData });
       if (!parseRes.ok) throw new Error("Parse failed");
       const parseData = await parseRes.json();
       const parsed = parseData.candidates;
-
       setUploadedFiles(prev => [...prev, ...toUpload.map(f => f.name)]);
       setStatus("Scoring candidates...");
-
       const matchRes = await fetch(`${BACKEND_URL}/api/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,7 +113,6 @@ export default function App() {
           semantic_weight: semanticWeight,
         }),
       });
-
       if (!matchRes.ok) throw new Error("Match failed");
       const matchData = await matchRes.json();
       setCandidates(matchData.ranked_candidates);
@@ -130,10 +125,23 @@ export default function App() {
     }
   }
 
+  async function handleFileUpload(e) {
+    await processFiles(Array.from(e.target.files));
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f =>
+      f.name.match(/\.(pdf|doc|docx)$/i)
+    );
+    processFiles(files);
+  }
+
   async function reScore() {
     if (!candidates.length) return;
     setLoading(true);
-    setStatus("Re-scoring with updated settings...");
+    setStatus("Re-scoring...");
     try {
       const res = await fetch(`${BACKEND_URL}/api/match`, {
         method: "POST",
@@ -146,11 +154,11 @@ export default function App() {
           semantic_weight: semanticWeight,
         }),
       });
-      if (!res.ok) throw new Error("Match failed");
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setCandidates(data.ranked_candidates);
       setStatus("✓ Re-scored");
-    } catch (err) {
+    } catch {
       setStatus("⚠ Could not reach backend");
     } finally {
       setLoading(false);
@@ -159,56 +167,88 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-left">
+      {/* Navbar (Fixed) */}
+      <nav className="navbar">
+        <div className="navbar-brand">
           <span className="logo">ResumeMatch</span>
           <span className="badge">Beta</span>
         </div>
-        <span className="header-status">{loading ? "⟳ Processing..." : status || `${rankedCandidates.length} candidates`}</span>
-      </header>
+        <div className="navbar-status">
+          {loading ? (
+            <><div className="spinner" /><span>Processing…</span></>
+          ) : status ? (
+            <><div className="status-dot" /><span>{status}</span></>
+          ) : (
+            <span>Ready</span>
+          )}
+        </div>
+      </nav>
 
-      {/* Slider */}
-      <div className="slider-bar">
-        <span className="slider-label">Match mode</span>
-        <span className="lex-badge">Lexical {100 - sliderValue}%</span>
-        <input
-          type="range" min="0" max="100" step="1"
-          value={sliderValue}
-          onChange={e => setSliderValue(Number(e.target.value))}
-          className="slider"
-          aria-label="Lexical to Semantic balance"
-        />
-        <span className="sem-badge">Semantic {sliderValue}%</span>
-        <span className="mode-label">{modeLabel}</span>
-        {candidates.length > 0 && (
-          <button className="rescore-btn" onClick={reScore} disabled={loading}>
-            Re-score
-          </button>
-        )}
-      </div>
+      {/* Hero / Intro section on top */}
+      <section className="hero">
+        <div className="hero-eyebrow">✦ AI-Powered Resume Screening</div>
+        <h1>Find Your Best Candidates,<br />Instantly</h1>
+        <p className="hero-sub">
+          Match resumes against your job description using keyword and semantic AI analysis.
+          Ranked results in seconds.
+        </p>
+        <button className="hero-cta" onClick={scrollToApp}>
+          Try the App <span>↓</span>
+        </button>
+      </section>
 
-      {/* Main */}
-      <main className="main">
-        {/* Left Panel */}
-        <div className="left-panel">
+      {/* Main Dashboard Layout (fills viewport once scrolled down) */}
+      <main className="main-layout" ref={mainAppRef}>
+
+        {/* Left Panel - Configuration & Upload */}
+        <aside className="left-panel">
+
           <div className="panel-header">
-            <span>📋 Job description</span>
-            <span className="panel-sub">Editable</span>
+            <h2 className="panel-title">Configuration</h2>
+            <p className="panel-sub">Set job criteria and upload resumes</p>
           </div>
-          <textarea
-            className="jd-textarea"
-            value={jdText}
-            onChange={e => setJdText(e.target.value)}
-            placeholder="Paste your job description here..."
-            aria-label="Job description"
-          />
 
-          {/* Skills Panel */}
-          <div className="skills-panel">
-            <div className="skills-header">
-              <span>🏷 Key skills <small>(editable)</small></span>
-              <button onClick={extractSkillsFromJD} className="extract-btn">Extract from JD</button>
+          {/* Slider */}
+          <div className="config-block">
+            <div className="block-header">
+              <span className="block-title">🎯 Match Mode</span>
+              <span className="slider-mode-badge">{modeLabel}</span>
+            </div>
+            <div className="slider-track-wrapper">
+              <input
+                type="range" min="0" max="100" step="1"
+                value={sliderValue}
+                style={{ "--val": sliderValue }}
+                onChange={e => setSliderValue(Number(e.target.value))}
+                className="slider"
+                aria-label="Lexical to Semantic balance"
+              />
+              <div className="slider-labels">
+                <span>← Exact Skills (Lexical)</span>
+                <span>Similar Skills (Semantic) →</span>
+              </div>
+            </div>
+          </div>
+
+          {/* JD Input */}
+          <div className="config-block">
+            <div className="block-header">
+              <span className="block-title">📋 Job Description</span>
+            </div>
+            <textarea
+              className="jd-textarea"
+              value={jdText}
+              onChange={e => setJdText(e.target.value)}
+              placeholder="Paste your job description here…"
+              aria-label="Job description"
+            />
+          </div>
+
+          {/* Skills Input */}
+          <div className="config-block">
+            <div className="block-header">
+              <span className="block-title">🏷 Key Skills</span>
+              <button onClick={extractSkillsFromJD} className="btn-sm btn-outline">Extract ✨</button>
             </div>
             <div className="skills-chips">
               {jdSkills.map(skill => (
@@ -220,58 +260,104 @@ export default function App() {
             </div>
             <div className="skill-add-row">
               <input
-                type="text" placeholder="Add a skill..."
+                type="text" placeholder="Add a skill…"
                 value={newSkill}
                 onChange={e => setNewSkill(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && addSkill()}
                 className="skill-input"
                 aria-label="Add skill"
               />
-              <button onClick={addSkill} className="add-btn">Add</button>
+              <button onClick={addSkill} className="btn-sm btn-primary">Add</button>
             </div>
           </div>
 
-          {/* Upload Panel */}
-          <div className="upload-panel">
-            <div className="upload-header">
-              <span>📤 Upload resumes <small>(max 10)</small></span>
-              <span className="upload-count">{uploadedFiles.length} / 10</span>
+          {/* Upload Zone */}
+          <div className="config-block" style={{ marginTop: 'auto', marginBottom: '10px' }}>
+            <div className="block-header">
+              <span className="block-title">📤 Upload Candidates</span>
             </div>
             <div
-              className="upload-zone"
+              className={`upload-dropzone${dragOver ? " drag-over" : ""}`}
               onClick={() => fileInputRef.current.click()}
-              onKeyDown={e => e.key === "Enter" && fileInputRef.current.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
               role="button" tabIndex="0"
-              aria-label="Upload resume files"
+              onKeyDown={e => e.key === "Enter" && fileInputRef.current.click()}
             >
-              <div className="upload-icon">📄</div>
-              <p>Click to upload PDF or Word files</p>
+              <span className="upload-icon">📄</span>
+              <h3>Drop resumes here</h3>
+              <p>PDF or Word files</p>
+
+              <button
+                className="analyze-btn"
+                onClick={e => { e.stopPropagation(); fileInputRef.current.click(); }}
+                disabled={loading}
+              >
+                {loading ? <><div className="spinner" style={{ borderColor: "rgba(255,255,255,0.4)", borderTopColor: "#fff" }} />Analyzing…</> : <>✦ Browse & Analyze</>}
+              </button>
             </div>
+
             <input
               ref={fileInputRef}
               type="file" multiple accept=".pdf,.doc,.docx"
               onChange={handleFileUpload}
               style={{ display: "none" }}
-              aria-label="File input"
             />
+
             {uploadedFiles.length > 0 && (
               <div className="file-list">
                 {uploadedFiles.map((f, i) => (
-                  <span key={i} className="file-pill">📄 {f.length > 20 ? f.slice(0, 18) + "…" : f}</span>
+                  <span key={i} className="file-pill">
+                    {f.length > 20 ? f.slice(0, 18) + "…" : f}
+                  </span>
                 ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right Panel */}
-        <div className="right-panel">
-          <div className="panel-header sticky">
-            <span>👥 Ranked candidates</span>
-            <span className="panel-sub">Sorted by match score</span>
+        </aside>
+
+        {/* Right Panel - Results */}
+        <section className="right-panel">
+
+          <div className="results-header">
+            <div>
+              <h2 className="results-title">Ranked Candidates</h2>
+              <p className="results-sub">
+                {rankedCandidates.length > 0
+                  ? `Showing ${rankedCandidates.length} parsed resumes`
+                  : "Upload resumes on the left to see matches"}
+              </p>
+            </div>
+            {candidates.length > 0 && (
+              <button className="btn-sm btn-outline" onClick={reScore} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {loading ? <div className="spinner" /> : "↻ Re-score"}
+              </button>
+            )}
           </div>
 
-          {selected ? (
+          {rankedCandidates.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📊</div>
+              <p>No candidates yet. Configure your criteria on the left and upload resumes to get started.</p>
+            </div>
+          ) : (
+            <div className="candidates-grid">
+              {rankedCandidates.map((c, i) => (
+                <CandidateCard
+                  key={c.filename || i}
+                  candidate={c}
+                  rank={i + 1}
+                  jdSkills={jdSkills}
+                  onClick={() => setSelected(c)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Slide-over Detail Panel */}
+          {selected && (
             <CandidateDetail
               candidate={selected}
               jdSkills={jdSkills}
@@ -280,61 +366,63 @@ export default function App() {
               semanticWeight={semanticWeight}
               onClose={() => setSelected(null)}
             />
-          ) : (
-            <div className="candidate-list">
-              {rankedCandidates.length === 0 ? (
-                <div className="empty-state">
-                  <div style={{ fontSize: 40 }}>📤</div>
-                  <p>Upload resumes to get started</p>
-                </div>
-              ) : (
-                rankedCandidates.map((c, i) => (
-                  <CandidateCard key={c.filename || i} candidate={c} rank={i + 1} jdSkills={jdSkills} onClick={() => setSelected(c)} />
-                ))
-              )}
-            </div>
           )}
-        </div>
+
+        </section>
       </main>
     </div>
   );
 }
 
+function scoreColor(score) {
+  if (score >= 75) return "score-green";
+  if (score >= 50) return "score-yellow";
+  return "score-red";
+}
+
 function CandidateCard({ candidate: c, rank, jdSkills, onClick }) {
-  const rankColor = rank === 1 ? "#185FA5" : rank === 2 ? "#3B6D11" : rank === 3 ? "#854F0B" : "#888";
   const jdLower = jdSkills.map(s => s.toLowerCase());
   const matched = c.skills?.filter(s => jdLower.includes(s.toLowerCase())) || [];
   const missing = jdSkills.filter(s => !(c.skills || []).map(x => x.toLowerCase()).includes(s.toLowerCase()));
 
+  const rankEmoji = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+
   return (
-    <div className="candidate-card" onClick={onClick} role="button" tabIndex="0" onKeyDown={e => e.key === "Enter" && onClick()}>
+    <div
+      className="candidate-card"
+      onClick={onClick}
+      role="button" tabIndex="0"
+      onKeyDown={e => e.key === "Enter" && onClick()}
+    >
       <div className="card-top">
         <div className="card-left">
           <div className="avatar">{c.name.split(" ").map(n => n[0]).join("")}</div>
           <div>
-            <p className="candidate-name">{c.name}</p>
+            <p className="candidate-name">{rankEmoji ? `${rankEmoji} ` : `#${rank} `}{c.name}</p>
             <p className="candidate-sub">{c.location || "Location unknown"}</p>
           </div>
         </div>
-        <div className="card-score">
-          <div className="final-score" style={{ color: rankColor }}>{c.final_score}%</div>
-          <div className="rank-label">#{rank}</div>
+        <div className="score-ring-wrap">
+          <div className={`final-score ${scoreColor(c.final_score)}`}>{c.final_score}%</div>
+          <div className="rank-label">match</div>
         </div>
       </div>
+
       <div className="score-bars">
-        <ScoreBar label="Lexical" score={c.lexical_score} color="#185FA5" />
-        <ScoreBar label="Semantic" score={c.semantic_score} color="#1D9E75" />
+        <ScoreBar label="Keyword" score={c.lexical_score} color="#5B6AF0" />
+        <ScoreBar label="Semantic" score={c.semantic_score} color="#10B981" />
       </div>
+
       <div className="card-footer">
         <div className="skill-tags">
           {(c.skills || []).slice(0, 3).map(s => (
-            <span key={s} className={jdLower.includes(s.toLowerCase()) ? "tag-match" : "tag-miss"}>{s}</span>
+            <span key={s} className={`tag ${jdLower.includes(s.toLowerCase()) ? "tag-match" : "tag-miss"}`}>{s}</span>
           ))}
           {(c.skills || []).length > 3 && <span className="tag-more">+{c.skills.length - 3}</span>}
         </div>
         <div className="match-summary">
           <span className="match-ok">✓ {matched.length}</span>
-          <span className="match-gap">✗ {missing.length} missing</span>
+          <span className="match-gap">✗ {missing.length}</span>
         </div>
       </div>
     </div>
@@ -361,83 +449,95 @@ function CandidateDetail({ candidate: c, jdSkills, sliderValue, lexicalWeight, s
   const final = c.final_score || parseFloat((c.lexical_score * lexicalWeight + c.semantic_score * semanticWeight).toFixed(1));
 
   return (
-    <div className="detail-overlay">
-      <div className="detail-card">
+    <div className="detail-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="detail-panel">
+
         <div className="detail-header">
-          <div className="detail-identity">
-            <div className="avatar avatar-lg">{c.name.split(" ").map(n => n[0]).join("")}</div>
+          <div className="card-left">
+            <div className="avatar" style={{ width: 44, height: 44, fontSize: 16 }}>{c.name.split(" ").map(n => n[0]).join("")}</div>
             <div>
-              <p className="candidate-name">{c.name}</p>
+              <p className="candidate-name" style={{ fontSize: 15 }}>{c.name}</p>
               <p className="candidate-sub">{c.location || "Location unknown"}</p>
             </div>
           </div>
           <button className="close-btn" onClick={onClose} aria-label="Close">×</button>
         </div>
 
-        {/* Score Breakdown */}
-        <section className="detail-section">
-          <h3 className="section-title">📊 Match score breakdown</h3>
-          <div className="breakdown-box">
-            <ScoreBar label="Lexical" score={c.lexical_score} color="#185FA5" />
-            <ScoreBar label="Semantic" score={c.semantic_score} color="#1D9E75" />
-            <div className="formula-row">
-              <span className="formula-text">
-                ({c.lexical_score} × {Math.round((1 - sliderValue / 100) * 100)}%) + ({c.semantic_score} × {Math.round(sliderValue)}%) = <strong>{final}% final score</strong>
-              </span>
-            </div>
-            <div className="stats-grid">
-              <div className="stat-box">
-                <span className="stat-num" style={{ color: "#185FA5" }}>{matched.length}</span>
-                <span className="stat-lbl">skills matched</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-num" style={{ color: "#A32D2D" }}>{missing.length}</span>
-                <span className="stat-lbl">skills missing</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-num" style={{ color: "#3B6D11" }}>{bonus.length}</span>
-                <span className="stat-lbl">bonus skills</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <div className="detail-content">
 
-        {/* Skills */}
-        <section className="detail-section">
-          <div className="skills-row">
+          <div className="detail-section">
+            <div className="section-title-sm">📊 Match Score Breakdown</div>
             <div>
-              <p className="skills-group-label match">✓ Matched skills</p>
-              {matched.length ? matched.map(s => <span key={s} className="tag-match">{s}</span>) : <span className="tag-none">None</span>}
-            </div>
-            <div>
-              <p className="skills-group-label gap">✗ Missing skills</p>
-              {missing.length ? missing.map(s => <span key={s} className="tag-gap">{s}</span>) : <span className="tag-ok">All present ✓</span>}
-            </div>
-          </div>
-          {bonus.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <p className="skills-group-label bonus">+ Bonus skills</p>
-              {bonus.map(s => <span key={s} className="tag-miss">{s}</span>)}
-            </div>
-          )}
-        </section>
+              <ScoreBar label="Keyword" score={c.lexical_score} color="#5B6AF0" />
+              <div style={{ height: 6 }} />
+              <ScoreBar label="Semantic" score={c.semantic_score} color="#10B981" />
 
-        {/* Info Grid */}
-        <section className="detail-section">
-          <div className="info-grid">
-            {[
-              ["Experience", c.experience_years ? `${c.experience_years} years` : "—"],
-              ["Salary", c.salary || "—"],
-              ["Education", c.education || "—"],
-              ["Email", c.email || "—"],
-            ].map(([l, v]) => (
-              <div key={l} className="info-item">
-                <p className="info-label">{l}</p>
-                <p className="info-value">{v}</p>
+              <div className="formula-row">
+                ({c.lexical_score} × {Math.round((1 - sliderValue / 100) * 100)}%) +&nbsp;
+                ({c.semantic_score} × {Math.round(sliderValue)}%) = <strong>{final}% final</strong>
               </div>
-            ))}
+
+              <div className="stats-grid">
+                <div className="stat-box">
+                  <span className="stat-num" style={{ color: "#5B6AF0" }}>{matched.length}</span>
+                  <span className="stat-lbl">matched</span>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-num" style={{ color: "#EF4444" }}>{missing.length}</span>
+                  <span className="stat-lbl">missing</span>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-num" style={{ color: "#10B981" }}>{bonus.length}</span>
+                  <span className="stat-lbl">bonus</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </section>
+
+          <div className="detail-section">
+            <div className="section-title-sm">🏷 Skill Analysis</div>
+            <div className="skills-row">
+              <div>
+                <p className="skills-group-label" style={{ color: "var(--primary)" }}>✓ Matched</p>
+                <div className="skill-tags">
+                  {matched.length ? matched.map(s => <span key={s} className="tag tag-match">{s}</span>) : <span className="tag tag-miss">None</span>}
+                </div>
+              </div>
+              <div>
+                <p className="skills-group-label" style={{ color: "var(--danger)" }}>✗ Missing</p>
+                <div className="skill-tags">
+                  {missing.length ? missing.map(s => <span key={s} className="tag tag-gap">{s}</span>) : <span className="tag-ok">All present ✓</span>}
+                </div>
+              </div>
+            </div>
+            {bonus.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <p className="skills-group-label">＋ Bonus skills</p>
+                <div className="skill-tags">
+                  {bonus.map(s => <span key={s} className="tag tag-miss">{s}</span>)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="detail-section">
+            <div className="section-title-sm">👤 Candidate Info</div>
+            <div className="info-grid">
+              {[
+                ["Experience", c.experience_years ? `${c.experience_years} yrs` : "—"],
+                ["Salary", c.salary || "—"],
+                ["Education", c.education || "—"],
+                ["Email", c.email || "—"],
+              ].map(([l, v]) => (
+                <div key={l}>
+                  <p className="info-label">{l}</p>
+                  <p className="info-value">{v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
