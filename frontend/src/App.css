@@ -1,0 +1,272 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f6fa;
+  color: #1a1a2e;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── App Layout ── */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Header ── */
+.header {
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo { font-weight: 600; font-size: 16px; color: #185FA5; }
+.badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 12px;
+  background: #E6F1FB; color: #185FA5; border: 1px solid #B5D4F4; font-weight: 500;
+}
+.header-status { font-size: 12px; color: #6b7280; }
+
+/* ── Slider Bar ── */
+.slider-bar {
+  padding: 8px 20px;
+  background: #f0f4f8;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.slider-label { font-size: 12px; font-weight: 500; color: #374151; white-space: nowrap; }
+.lex-badge, .sem-badge {
+  font-size: 11px; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px; color: #fff; white-space: nowrap;
+}
+.lex-badge { background: #185FA5; }
+.sem-badge { background: #1D9E75; }
+.slider { flex: 1; min-width: 120px; accent-color: #185FA5; }
+.mode-label { font-size: 11px; color: #6b7280; white-space: nowrap; min-width: 100px; }
+.rescore-btn {
+  font-size: 11px; padding: 4px 12px; border-radius: 12px;
+  border: 1px solid #185FA5; color: #185FA5; background: #fff;
+  cursor: pointer; white-space: nowrap;
+}
+.rescore-btn:hover { background: #E6F1FB; }
+.rescore-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Main Split ── */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Left Panel ── */
+.left-panel {
+  width: 42%;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.panel-header {
+  padding: 8px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  flex-shrink: 0;
+}
+.panel-header.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+.panel-sub { font-size: 10px; color: #9ca3af; font-weight: 400; }
+
+.jd-textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.8;
+  resize: none;
+  color: #374151;
+  font-family: inherit;
+  min-height: 0;
+}
+
+/* ── Skills Panel ── */
+.skills-panel {
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  background: #f9fafb;
+  padding: 8px 12px 10px;
+}
+.skills-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px; font-size: 11px; font-weight: 500; color: #374151;
+}
+.skills-header small { font-weight: 400; color: #9ca3af; margin-left: 4px; }
+.extract-btn {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  border: 1px solid #d1d5db; background: #fff; color: #6b7280; cursor: pointer;
+}
+.extract-btn:hover { background: #f3f4f6; }
+.skills-chips { display: flex; flex-wrap: wrap; gap: 3px; max-height: 70px; overflow-y: auto; margin-bottom: 6px; }
+.skill-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+  background: #E6F1FB; color: #0C447C; border: 1px solid #B5D4F4;
+}
+.skill-chip button { background: none; border: none; cursor: pointer; color: #185FA5; font-size: 13px; line-height: 1; padding: 0; }
+.skill-add-row { display: flex; gap: 6px; }
+.skill-input {
+  flex: 1; font-size: 11px; padding: 4px 10px; border-radius: 12px;
+  border: 1px solid #d1d5db; outline: none; color: #374151;
+}
+.skill-input:focus { border-color: #185FA5; }
+.add-btn {
+  font-size: 11px; padding: 4px 12px; border-radius: 12px;
+  border: 1px solid #185FA5; color: #185FA5; background: #fff; cursor: pointer;
+}
+.add-btn:hover { background: #E6F1FB; }
+
+/* ── Upload Panel ── */
+.upload-panel {
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background: #fff;
+}
+.upload-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; font-weight: 500; color: #374151; margin-bottom: 7px;
+}
+.upload-header small { font-weight: 400; color: #9ca3af; margin-left: 4px; }
+.upload-count { font-size: 10px; color: #9ca3af; }
+.upload-zone {
+  border: 1.5px dashed #d1d5db; border-radius: 8px; padding: 14px;
+  text-align: center; cursor: pointer; background: #f9fafb; transition: background 0.15s;
+}
+.upload-zone:hover { background: #f3f4f6; }
+.upload-icon { font-size: 24px; margin-bottom: 4px; }
+.upload-zone p { font-size: 11px; color: #6b7280; }
+.file-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.file-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 12px; font-size: 10px;
+  background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280;
+}
+
+/* ── Right Panel ── */
+.right-panel {
+  flex: 1; overflow: auto; display: flex; flex-direction: column;
+  background: #f5f6fa;
+}
+
+.candidate-list { padding: 8px 10px; display: flex; flex-direction: column; gap: 7px; }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: #9ca3af;
+}
+.empty-state p { font-size: 13px; margin-top: 10px; }
+
+/* ── Candidate Card ── */
+.candidate-card {
+  background: #fff; border-radius: 10px; border: 1px solid #e5e7eb;
+  padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+}
+.candidate-card:hover { border-color: #185FA5; transform: translateY(-1px); }
+
+.card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.card-left { display: flex; align-items: center; gap: 9px; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #E6F1FB; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #185FA5; flex-shrink: 0;
+}
+.avatar-lg { width: 44px; height: 44px; font-size: 15px; }
+.candidate-name { font-weight: 600; font-size: 13px; color: #1a1a2e; margin: 0; }
+.candidate-sub { font-size: 11px; color: #6b7280; margin: 2px 0 0; }
+.card-score { text-align: right; }
+.final-score { font-size: 22px; font-weight: 700; line-height: 1; }
+.rank-label { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+.score-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.score-bar-row { display: flex; align-items: center; gap: 8px; }
+.score-bar-label { font-size: 10px; color: #9ca3af; width: 52px; flex-shrink: 0; }
+.score-bar-bg { flex: 1; height: 5px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.score-bar-value { font-size: 11px; font-weight: 500; min-width: 30px; color: #374151; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.skill-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.match-summary { display: flex; gap: 8px; font-size: 10px; flex-shrink: 0; }
+.match-ok { color: #1D9E75; }
+.match-gap { color: #A32D2D; }
+
+/* Skill tags */
+.tag-match { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background: #E6F1FB; color: #0C447C; border: 1px solid #B5D4F4; margin: 2px; }
+.tag-miss { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; margin: 2px; }
+.tag-gap { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background: #FCEBEB; color: #A32D2D; border: 1px solid #F7C1C1; margin: 2px; }
+.tag-ok { font-size: 11px; color: #1D9E75; }
+.tag-none { font-size: 11px; color: #9ca3af; }
+.tag-more { font-size: 10px; color: #9ca3af; margin-left: 2px; align-self: center; }
+
+/* ── Detail View ── */
+.detail-overlay {
+  padding: 10px;
+  background: rgba(0,0,0,0.25);
+  min-height: 100%;
+}
+.detail-card {
+  background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;
+  overflow: hidden; max-width: 600px; margin: 0 auto;
+}
+.detail-header {
+  padding: 16px 20px; border-bottom: 1px solid #e5e7eb;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.detail-identity { display: flex; align-items: center; gap: 12px; }
+.close-btn { background: none; border: none; cursor: pointer; font-size: 22px; color: #9ca3af; line-height: 1; }
+.close-btn:hover { color: #374151; }
+
+.detail-section { padding: 14px 20px; border-bottom: 1px solid #f3f4f6; }
+.detail-section:last-child { border-bottom: none; }
+.section-title { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 10px; }
+
+.breakdown-box { background: #f9fafb; border-radius: 8px; padding: 12px; }
+.formula-row { margin: 10px 0; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+.formula-text { font-size: 11px; color: #6b7280; }
+.formula-text strong { color: #185FA5; }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.stat-box {
+  background: #fff; border-radius: 8px; padding: 8px;
+  border: 1px solid #e5e7eb; text-align: center;
+}
+.stat-num { display: block; font-size: 20px; font-weight: 700; }
+.stat-lbl { font-size: 9px; color: #9ca3af; }
+
+.skills-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.skills-group-label { font-size: 10px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.skills-group-label.match { color: #185FA5; }
+.skills-group-label.gap { color: #A32D2D; }
+.skills-group-label.bonus { color: #6b7280; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-item {}
+.info-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.info-value { font-size: 12px; font-weight: 500; color: #374151; }
