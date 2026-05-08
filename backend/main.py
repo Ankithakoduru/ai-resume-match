@@ -11,7 +11,10 @@ app = FastAPI(title="ResumeMatch API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace with your Vercel URL in production
+    allow_origins=[
+        "http://localhost:3000",                    # local dev
+        "https://ai-resume-match-xi.vercel.app",   # production
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
