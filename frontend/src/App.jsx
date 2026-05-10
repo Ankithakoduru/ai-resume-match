@@ -1,13 +1,54 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import "./App.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+
+/** Fetch with one automatic retry after `retryDelay` ms on network failure */
+async function fetchWithRetry(url, options = {}, retryDelay = 6000) {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    await new Promise(r => setTimeout(r, retryDelay));
+    return await fetch(url, options); // second attempt
+  }
+}
 
 const COMMON_SKILLS = [
   "Power BI", "SQL", "Python", "Excel", "DAX", "Azure", "Tableau", "R", "dbt",
   "Snowflake", "Looker", "Spark", "Airflow", "Pandas", "NumPy", "Java", "Scala",
   "AWS", "GCP", "Qlik", "SAP", "Scikit-learn", "TensorFlow", "Jupyter",
   "Matplotlib", "Alteryx", "SAS", "PostgreSQL", "MySQL", "MongoDB",
+];
+
+const SAMPLE_CANDIDATES = [
+  {
+    name: "Priya Sharma",
+    skills: ["Power BI", "SQL", "Python", "DAX", "Azure", "Excel", "Tableau", "Pandas"],
+    experience_years: 5,
+    education: "M.S. Data Analytics, Georgia State University",
+    location: "Atlanta, GA",
+    email: "priya.sharma@email.com",
+    salary: "$95,000/yr",
+    lexical_score: 85.2,
+    semantic_score: 91.4,
+    final_score: 88.3,
+    filename: "Priya_Sharma_Resume.pdf",
+    rank: 1,
+  },
+  {
+    name: "Marcus Chen",
+    skills: ["SQL", "Python", "Excel", "Tableau", "R", "Pandas", "NumPy"],
+    experience_years: 3,
+    education: "B.S. Computer Science, UCF",
+    location: "Orlando, FL",
+    email: "marcus.chen@email.com",
+    salary: "$78,000/yr",
+    lexical_score: 62.8,
+    semantic_score: 74.1,
+    final_score: 68.5,
+    filename: "Marcus_Chen_Resume.pdf",
+    rank: 2,
+  },
 ];
 
 const DEFAULT_JD = `We are hiring a Data Analyst to join our growing analytics team.
@@ -42,8 +83,35 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [showSamples, setShowSamples] = useState(true);
+  const [backendStatus, setBackendStatus] = useState("checking"); // "checking" | "online" | "waking" | "offline"
   const fileInputRef = useRef();
   const mainAppRef = useRef();
+
+  // Ping backend on mount to detect sleep / offline
+  useEffect(() => {
+    let cancelled = false;
+    async function ping() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/`, { signal: AbortSignal.timeout(5000) });
+        if (!cancelled) setBackendStatus(res.ok ? "online" : "offline");
+      } catch {
+        if (cancelled) return;
+        // First ping failed → backend likely sleeping; show banner and retry
+        setBackendStatus("waking");
+        try {
+          await new Promise(r => setTimeout(r, 10000)); // wait 10 s for Railway to wake
+          if (cancelled) return;
+          const res2 = await fetch(`${BACKEND_URL}/`, { signal: AbortSignal.timeout(8000) });
+          if (!cancelled) setBackendStatus(res2.ok ? "online" : "offline");
+        } catch {
+          if (!cancelled) setBackendStatus("offline");
+        }
+      }
+    }
+    ping();
+    return () => { cancelled = true; };
+  }, []);
 
   const lexicalWeight = parseFloat(((100 - sliderValue) / 100).toFixed(2));
   const semanticWeight = parseFloat((sliderValue / 100).toFixed(2));
@@ -93,16 +161,17 @@ export default function App() {
     if (!toUpload.length) return;
     setLoading(true);
     setStatus("Uploading and parsing resumes...");
+    if (backendStatus !== "online") setStatus("⏳ Waking up backend, this may take ~15 seconds…");
     try {
       const formData = new FormData();
       toUpload.forEach(f => formData.append("files", f));
-      const parseRes = await fetch(`${BACKEND_URL}/api/parse-resumes`, { method: "POST", body: formData });
+      const parseRes = await fetchWithRetry(`${BACKEND_URL}/api/parse-resumes`, { method: "POST", body: formData });
       if (!parseRes.ok) throw new Error("Parse failed");
       const parseData = await parseRes.json();
       const parsed = parseData.candidates;
       setUploadedFiles(prev => [...prev, ...toUpload.map(f => f.name)]);
       setStatus("Scoring candidates...");
-      const matchRes = await fetch(`${BACKEND_URL}/api/match`, {
+      const matchRes = await fetchWithRetry(`${BACKEND_URL}/api/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,9 +185,12 @@ export default function App() {
       if (!matchRes.ok) throw new Error("Match failed");
       const matchData = await matchRes.json();
       setCandidates(matchData.ranked_candidates);
+      setBackendStatus("online");
+      setShowSamples(false);
       setStatus(`✓ ${matchData.ranked_candidates.length} candidates ranked`);
     } catch (err) {
-      setStatus("⚠ Backend not connected. Running in demo mode.");
+      setStatus("⚠ Backend offline. Check Railway deployment.");
+      setBackendStatus("offline");
       console.error(err);
     } finally {
       setLoading(false);
@@ -143,7 +215,7 @@ export default function App() {
     setLoading(true);
     setStatus("Re-scoring...");
     try {
-      const res = await fetch(`${BACKEND_URL}/api/match`, {
+      const res = await fetchWithRetry(`${BACKEND_URL}/api/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,6 +239,19 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Backend waking-up banner */}
+      {backendStatus === "waking" && (
+        <div className="backend-banner">
+          <div className="spinner" style={{ borderColor: "rgba(255,200,0,0.3)", borderTopColor: "#FFD700", width: 14, height: 14 }} />
+          <span>⏳ Backend is waking up on Railway (cold start ~15 s)…</span>
+        </div>
+      )}
+      {backendStatus === "offline" && (
+        <div className="backend-banner backend-banner--error">
+          <span>⚠ Backend appears offline. Check your <a href="https://railway.app" target="_blank" rel="noreferrer">Railway deployment</a>.</span>
+        </div>
+      )}
+
       {/* Navbar (Fixed) */}
       <nav className="navbar">
         <div className="navbar-brand">
@@ -178,6 +263,10 @@ export default function App() {
             <><div className="spinner" /><span>Processing…</span></>
           ) : status ? (
             <><div className="status-dot" /><span>{status}</span></>
+          ) : backendStatus === "online" ? (
+            <><div className="status-dot" style={{ background: "#10B981" }} /><span>Backend online</span></>
+          ) : backendStatus === "checking" ? (
+            <span style={{ opacity: 0.5 }}>Connecting…</span>
           ) : (
             <span>Ready</span>
           )}
@@ -338,9 +427,40 @@ export default function App() {
           </div>
 
           {rankedCandidates.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">📊</div>
-              <p>No candidates yet. Configure your criteria on the left and upload resumes to get started.</p>
+            <div className="empty-state-wrapper">
+              <div className="empty-state">
+                <div className="empty-icon">📊</div>
+                <p>No candidates yet. Configure your criteria on the left and upload resumes to get started.</p>
+              </div>
+
+              {/* Sample Resumes Preview */}
+              {showSamples && (
+                <div className="sample-section">
+                  <div className="sample-header">
+                    <div className="sample-badge">👀 PREVIEW</div>
+                    <h3 className="sample-title">Sample Results</h3>
+                    <p className="sample-sub">
+                      Here's what your results will look like after uploading resumes.
+                      Click a card to see the detailed breakdown.
+                    </p>
+                    <button className="btn-sm btn-outline sample-dismiss" onClick={() => setShowSamples(false)}>
+                      Dismiss
+                    </button>
+                  </div>
+                  <div className="candidates-grid">
+                    {SAMPLE_CANDIDATES.map((c, i) => (
+                      <CandidateCard
+                        key={c.filename || i}
+                        candidate={c}
+                        rank={i + 1}
+                        jdSkills={jdSkills}
+                        onClick={() => setSelected(c)}
+                        isSample={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="candidates-grid">
@@ -380,7 +500,7 @@ function scoreColor(score) {
   return "score-red";
 }
 
-function CandidateCard({ candidate: c, rank, jdSkills, onClick }) {
+function CandidateCard({ candidate: c, rank, jdSkills, onClick, isSample }) {
   const jdLower = jdSkills.map(s => s.toLowerCase());
   const matched = c.skills?.filter(s => jdLower.includes(s.toLowerCase())) || [];
   const missing = jdSkills.filter(s => !(c.skills || []).map(x => x.toLowerCase()).includes(s.toLowerCase()));
@@ -389,11 +509,12 @@ function CandidateCard({ candidate: c, rank, jdSkills, onClick }) {
 
   return (
     <div
-      className="candidate-card"
+      className={`candidate-card${isSample ? " sample-card" : ""}`}
       onClick={onClick}
       role="button" tabIndex="0"
       onKeyDown={e => e.key === "Enter" && onClick()}
     >
+      {isSample && <div className="sample-ribbon">Sample</div>}
       <div className="card-top">
         <div className="card-left">
           <div className="avatar">{c.name.split(" ").map(n => n[0]).join("")}</div>
