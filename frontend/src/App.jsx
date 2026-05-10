@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import "./App.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
