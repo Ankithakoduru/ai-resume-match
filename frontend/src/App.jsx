@@ -85,6 +85,7 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [showSamples, setShowSamples] = useState(true);
   const [backendStatus, setBackendStatus] = useState("checking"); // "checking" | "online" | "waking" | "offline"
+  const [deleteTarget, setDeleteTarget] = useState(null); // candidate to confirm-delete
   const fileInputRef = useRef();
   const mainAppRef = useRef();
 
@@ -153,6 +154,13 @@ export default function App() {
 
   function scrollToApp() {
     mainAppRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function deleteCandidate(candidate) {
+    setCandidates(prev => prev.filter(c => c.filename !== candidate.filename));
+    setUploadedFiles(prev => prev.filter(f => f !== candidate.filename));
+    if (selected?.filename === candidate.filename) setSelected(null);
+    setDeleteTarget(null);
   }
 
   async function processFiles(files) {
@@ -485,6 +493,7 @@ export default function App() {
                   rank={i + 1}
                   jdSkills={jdSkills}
                   onClick={() => setSelected(c)}
+                  onDelete={() => setDeleteTarget(c)}
                 />
               ))}
             </div>
@@ -504,6 +513,15 @@ export default function App() {
 
         </section>
       </main>
+
+      {/* Confirm Delete Modal */}
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          candidate={deleteTarget}
+          onConfirm={() => deleteCandidate(deleteTarget)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
@@ -514,7 +532,7 @@ function scoreColor(score) {
   return "score-red";
 }
 
-function CandidateCard({ candidate: c, rank, jdSkills, onClick, isSample }) {
+function CandidateCard({ candidate: c, rank, jdSkills, onClick, onDelete, isSample }) {
   const jdLower = jdSkills.map(s => s.toLowerCase());
   const matched = c.skills?.filter(s => jdLower.includes(s.toLowerCase())) || [];
   const missing = jdSkills.filter(s => !(c.skills || []).map(x => x.toLowerCase()).includes(s.toLowerCase()));
@@ -529,6 +547,14 @@ function CandidateCard({ candidate: c, rank, jdSkills, onClick, isSample }) {
       onKeyDown={e => e.key === "Enter" && onClick()}
     >
       {isSample && <div className="sample-ribbon">Sample</div>}
+      {!isSample && onDelete && (
+        <button
+          className="card-delete-btn"
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          aria-label={`Delete ${c.name}`}
+          title="Remove candidate"
+        >×</button>
+      )}
       <div className="card-top">
         <div className="card-left">
           <div className="avatar">{c.name.split(" ").map(n => n[0]).join("")}</div>
@@ -672,6 +698,25 @@ function CandidateDetail({ candidate: c, jdSkills, sliderValue, lexicalWeight, s
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({ candidate, onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onCancel()}>
+      <div className="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="modal-icon">🗑️</div>
+        <h3 className="modal-title" id="modal-title">Remove Candidate?</h3>
+        <p className="modal-body">
+          The resume for <strong>{candidate.name}</strong>
+          {candidate.filename ? ` (${candidate.filename})` : ""} that has been analyzed will be deleted.
+        </p>
+        <div className="modal-actions">
+          <button className="btn-sm btn-outline" onClick={onCancel}>Cancel</button>
+          <button className="btn-sm modal-confirm-btn" onClick={onConfirm}>Yes, Delete</button>
         </div>
       </div>
     </div>
