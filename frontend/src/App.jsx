@@ -385,49 +385,54 @@ export default function App() {
             </div>
           </div>
 
-          {/* JD Input */}
-          <div className="config-block">
-            <div className="block-header">
-              <span className="block-title">📋 Job Description</span>
-            </div>
-            <textarea
-              className="jd-textarea"
-              value={jdText}
-              onChange={e => setJdText(e.target.value)}
-              placeholder="Paste your job description here…"
-              aria-label="Job description"
-            />
-          </div>
+          {/* JD + Skills side by side */}
+          <div className="jd-skills-row">
 
-          {/* Skills Input */}
-          <div className="config-block">
-            <div className="block-header">
-              <span className="block-title">🏷 Key Skills</span>
-              <button onClick={extractSkillsFromJD} className="btn-sm btn-outline">Extract ✨</button>
-            </div>
-            <div className="skills-chips">
-              {jdSkills.map(skill => (
-                <span key={skill} className="skill-chip">
-                  {skill}
-                  <button onClick={() => removeSkill(skill)} aria-label={`Remove ${skill}`}>×</button>
-                </span>
-              ))}
-            </div>
-            <div className="skill-add-row">
-              <input
-                type="text" placeholder="Add a skill…"
-                value={newSkill}
-                onChange={e => setNewSkill(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addSkill()}
-                className="skill-input"
-                aria-label="Add skill"
+            {/* JD Input */}
+            <div className="config-block jd-block">
+              <div className="block-header">
+                <span className="block-title">📋 Job Description</span>
+              </div>
+              <textarea
+                className="jd-textarea"
+                value={jdText}
+                onChange={e => setJdText(e.target.value)}
+                placeholder="Paste your job description here…"
+                aria-label="Job description"
               />
-              <button onClick={addSkill} className="btn-sm btn-primary">Add</button>
             </div>
+
+            {/* Skills Input */}
+            <div className="config-block skills-block">
+              <div className="block-header">
+                <span className="block-title">🏷 Skills</span>
+                <button onClick={extractSkillsFromJD} className="btn-sm btn-outline">Extract ✨</button>
+              </div>
+              <div className="skills-chips">
+                {jdSkills.map(skill => (
+                  <span key={skill} className="skill-chip">
+                    {skill}
+                    <button onClick={() => removeSkill(skill)} aria-label={`Remove ${skill}`}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div className="skill-add-row">
+                <input
+                  type="text" placeholder="Add a skill…"
+                  value={newSkill}
+                  onChange={e => setNewSkill(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && addSkill()}
+                  className="skill-input"
+                  aria-label="Add skill"
+                />
+                <button onClick={addSkill} className="btn-sm btn-primary">Add</button>
+              </div>
+            </div>
+
           </div>
 
           {/* Upload Zone */}
-          <div className="config-block" style={{ marginTop: 'auto', marginBottom: '10px' }}>
+          <div className="config-block upload-compact-block">
             <div className="block-header">
               <span className="block-title">📤 Upload Candidates</span>
             </div>
