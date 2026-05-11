@@ -414,6 +414,44 @@ body {
   opacity: 1;
 }
 
+/* Collapsed bar */
+.sample-collapsed-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 1.5px dashed rgba(91,106,240,0.25);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(91,106,240,0.03) 0%, rgba(16,185,129,0.03) 100%);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.sample-collapsed-bar:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.sample-collapsed-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+.sample-collapsed-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sample-chevron {
+  font-size: 10px;
+  color: var(--primary);
+  transition: transform 0.2s;
+}
+.sample-collapsed-bar:hover .sample-chevron {
+  transform: translateY(2px);
+}
+
+
 /* Sample card overrides */
 .sample-card {
   position: relative;

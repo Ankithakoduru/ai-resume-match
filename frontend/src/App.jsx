@@ -434,33 +434,47 @@ export default function App() {
               </div>
 
               {/* Sample Resumes Preview */}
-              {showSamples && (
-                <div className="sample-section">
-                  <div className="sample-header">
-                    <div className="sample-badge">👀 PREVIEW</div>
-                    <h3 className="sample-title">Sample Results</h3>
-                    <p className="sample-sub">
-                      Here's what your results will look like after uploading resumes.
-                      Click a card to see the detailed breakdown.
-                    </p>
-                    <button className="btn-sm btn-outline sample-dismiss" onClick={() => setShowSamples(false)}>
-                      Dismiss
-                    </button>
-                  </div>
-                  <div className="candidates-grid">
-                    {SAMPLE_CANDIDATES.map((c, i) => (
-                      <CandidateCard
-                        key={c.filename || i}
-                        candidate={c}
-                        rank={i + 1}
-                        jdSkills={jdSkills}
-                        onClick={() => setSelected(c)}
-                        isSample={true}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="sample-section">
+                {/* Collapsed bar shown when dismissed */}
+                {!showSamples ? (
+                  <button
+                    className="sample-collapsed-bar"
+                    onClick={() => setShowSamples(true)}
+                    aria-label="Expand sample results"
+                  >
+                    <span className="sample-badge" style={{ marginBottom: 0 }}>👀 PREVIEW</span>
+                    <span className="sample-collapsed-label">Sample Results</span>
+                    <span className="sample-collapsed-hint">Click to expand</span>
+                    <span className="sample-chevron">▼</span>
+                  </button>
+                ) : (
+                  <>
+                    <div className="sample-header">
+                      <div className="sample-badge">👀 PREVIEW</div>
+                      <h3 className="sample-title">Sample Results</h3>
+                      <p className="sample-sub">
+                        Here's what your results will look like after uploading resumes.
+                        Click a card to see the detailed breakdown.
+                      </p>
+                      <button className="btn-sm btn-outline sample-dismiss" onClick={() => setShowSamples(false)}>
+                        ▲ Collapse
+                      </button>
+                    </div>
+                    <div className="candidates-grid">
+                      {SAMPLE_CANDIDATES.map((c, i) => (
+                        <CandidateCard
+                          key={c.filename || i}
+                          candidate={c}
+                          rank={i + 1}
+                          jdSkills={jdSkills}
+                          onClick={() => setSelected(c)}
+                          isSample={true}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             <div className="candidates-grid">
