@@ -77,17 +77,42 @@ export default function App() {
   const [jdSkills, setJdSkills] = useState(["Power BI", "SQL", "Python", "Excel", "DAX", "Azure"]);
   const [newSkill, setNewSkill] = useState("");
   const [sliderValue, setSliderValue] = useState(50);
-  const [candidates, setCandidates] = useState([]);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [candidates, setCandidates] = useState(() => {
+    try {
+      const saved = localStorage.getItem("resumematch_candidates");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [uploadedFiles, setUploadedFiles] = useState(() => {
+    try {
+      const saved = localStorage.getItem("resumematch_files");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [showSamples, setShowSamples] = useState(true);
+  const [showSamples, setShowSamples] = useState(() => {
+    try {
+      const saved = localStorage.getItem("resumematch_candidates");
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.length === 0; // hide samples if real candidates already exist
+    } catch { return true; }
+  });
   const [backendStatus, setBackendStatus] = useState("checking"); // "checking" | "online" | "waking" | "offline"
   const [deleteTarget, setDeleteTarget] = useState(null); // candidate to confirm-delete
   const fileInputRef = useRef();
   const mainAppRef = useRef();
+
+  // Persist candidates and file list to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem("resumematch_candidates", JSON.stringify(candidates));
+  }, [candidates]);
+
+  useEffect(() => {
+    localStorage.setItem("resumematch_files", JSON.stringify(uploadedFiles));
+  }, [uploadedFiles]);
 
   // Ping backend on mount to detect sleep / offline
   useEffect(() => {
