@@ -102,6 +102,11 @@ export default function App() {
   });
   const [backendStatus, setBackendStatus] = useState("checking"); // "checking" | "online" | "waking" | "offline"
   const [deleteTarget, setDeleteTarget] = useState(null); // candidate to confirm-delete
+  const [panelWidth, setPanelWidth] = useState(400); // resizable left panel width
+  const DEFAULT_PANEL_WIDTH = 400;
+  const MIN_PANEL_WIDTH = 260;
+  const MAX_PANEL_WIDTH = 680;
+  const isResizing = useRef(false);
   const fileInputRef = useRef();
   const mainAppRef = useRef();
 
@@ -113,6 +118,34 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("resumematch_files", JSON.stringify(uploadedFiles));
   }, [uploadedFiles]);
+
+  // Drag-to-resize left panel
+  useEffect(() => {
+    function onMouseMove(e) {
+      if (!isResizing.current) return;
+      const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, e.clientX));
+      setPanelWidth(newWidth);
+    }
+    function onMouseUp() {
+      if (isResizing.current) {
+        isResizing.current = false;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
+    }
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [MAX_PANEL_WIDTH, MIN_PANEL_WIDTH]);
+
+  function startResize() {
+    isResizing.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }
 
   // Ping backend on mount to detect sleep / offline
   useEffect(() => {
@@ -323,7 +356,7 @@ export default function App() {
       <main className="main-layout" ref={mainAppRef}>
 
         {/* Left Panel - Configuration & Upload */}
-        <aside className="left-panel">
+        <aside className="left-panel" style={{ width: panelWidth, minWidth: panelWidth, maxWidth: panelWidth }}>
 
           <div className="panel-header">
             <h2 className="panel-title">Configuration</h2>
@@ -439,6 +472,18 @@ export default function App() {
           </div>
 
         </aside>
+
+        {/* Resize Handle */}
+        <div
+          className="resize-handle"
+          onMouseDown={startResize}
+          onDoubleClick={() => setPanelWidth(DEFAULT_PANEL_WIDTH)}
+          title="Drag to resize · Double-click to reset"
+          role="separator"
+          aria-label="Resize panel"
+        >
+          <div className="resize-handle-grip" />
+        </div>
 
         {/* Right Panel - Results */}
         <section className="right-panel">
